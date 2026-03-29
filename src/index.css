@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Three main colors as requested */
+  --color-bg: #090a0f;       /* Very dark background for depth */
+  --color-primary: #5c6fff;  /* Vibrant blue/indigo for primary actions and emphasis */
+  --color-accent: #1c1d29;   /* For borders, panels, and subtle separations */
+  
+  /* Additional text colors to ensure readability */
+  --color-text: #f9f9fb;
+  --color-text-muted: #8b8d9c;
+  
+  /* Typography */
+  --font-main: 'Plus Jakarta Sans', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-main);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  transition: all 0.2s ease-in-out;
+}
+
+input, textarea {
+  font-family: inherit;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--color-text);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-accent);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
