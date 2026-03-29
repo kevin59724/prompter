@@ -1,36 +1,30 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-export const config = {
-  // Configuración recomendada para Edge Functions en Vercel (son mucho más rápidas)
-  runtime: 'edge',
-};
+export default async function handler(req, res) {
+  // CORS configuration (opcional, pero útil si se llama desde otros dominios)
+  res.setHeader('Access-Control-Allow-Credentials', true)
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
 
-export default async function handler(req) {
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Método no permitido' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(405).json({ error: 'Método no permitido' });
   }
 
   try {
-    const { prompt, category, action } = await req.json();
+    const { prompt, category, action } = req.body || {};
 
     if (!prompt) {
-      return new Response(JSON.stringify({ error: 'Falta el prompt' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(400).json({ error: 'Falta el prompt' });
     }
 
-    // La llave ahora se toma de las variables secretas de Vercel (o del .env local), no del frontend
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API Key secreta no configurada en el servidor' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(500).json({ error: 'API Key secreta no configurada en el servidor (Vercel Settings)' });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -38,18 +32,15 @@ export default async function handler(req) {
 
     let finalInstruction = "";
 
-    // Si es una acción directa de ajuste ("Más corto", "Traducir", "Variante")
     if (action) {
       if (action === 'shorten') {
         finalInstruction = `Resume y acorta el siguiente prompt, haciéndolo directo y conciso sin perder sus parámetros técnicos principales:\n\n"${prompt}"`;
       } else if (action === 'translate') {
         finalInstruction = `Traduce el siguiente prompt al inglés nativo, pero manteniéndolo como un mandato directo (Ej. si dice 'crea una imagen de...', tradúcelo a 'create an image of...'). Conserva los parámetros técnicos:\n\n"${prompt}"`;
       } else if (action === 'vary') {
-        finalInstruction = `Agrega instrucciones extremadamente creativas, abstractas, fuera de la caja o vanguardistas a este prompt base conservando su núcleo y no borres lo que ya está. Devuelve solo el resultado extendido:\n\n"${prompt}"`;
+        finalInstruction = `Agrega instrucciones extremadamente creativas, abstractas, vanguardistas a este prompt conservando su núcleo y no borres lo que ya está. Devuelve solo el resultado extendido:\n\n"${prompt}"`;
       }
-    } 
-    // Si es la generación base del prompt
-    else {
+    } else {
       let systemInstruction = "";
       if (category === 'image') {
         systemInstruction = "Eres un experto creador de prompts especializado en herramientas de generación de imágenes (Stable Diffusion, Midjourney, etc). Toma la idea del usuario y devuelve un **prompt técnico extremadamente detallado y fotorealista**, en formato Markdown o bloques legibles. Añade iluminación, encuadre de cámara, lente, paleta de color y resolución. Evita saludar, devuelve el prompt inmediatamente.";
@@ -58,23 +49,17 @@ export default async function handler(req) {
       } else if (category === 'write') {
         systemInstruction = "Eres un Copywriter de Alto Rendimiento. Reestructura la simple orden del usuario en una petición experta para redactar artículos geniales. Dictamina en el prompt que la escritura debe ser magnética, tener párrafos cortos, tono persuasivo e invitar al 'engagement'. No saludes. Devuelve simplemente la orden transformada.";
       }
-
       finalInstruction = `${systemInstruction}\n\nRequerimiento del usuario: "${prompt}"\n\nGenera el Prompt Maestro a partir de la frase del usuario:\n`;
     }
 
     const result = await model.generateContent(finalInstruction);
     const textOutput = result.response.text();
 
-    return new Response(JSON.stringify({ result: textOutput }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(200).json({ result: textOutput });
 
   } catch (error) {
-    console.error('Error en el servidor:', error);
-    return new Response(JSON.stringify({ error: 'Hubo un fallo generando el contenido con Gemini' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error('Error en el backend Vercel:', error);
+    // Mostrará exactamente por qué falló Gemini (ej. clave denegada, error de conexión, etc)
+    return res.status(500).json({ error: `Fallo con Gemini: ${error.message || error}` });
   }
 }
