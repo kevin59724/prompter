@@ -37,9 +37,9 @@ function App() {
       } else {
         throw new Error(data.error || 'Fallo desconocido en el servidor');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setOutputPrompt("❌ Error comunicándose con el servidor seguro.");
+      setOutputPrompt("❌ " + (err.message || "Error comunicándose con el servidor seguro. Revisa los logs de Vercel."));
     } finally {
       setIsEnhancing(false);
     }
@@ -73,9 +73,9 @@ function App() {
       } else {
         throw new Error(data.error || 'Fallo desconocido del servidor');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("❌ Hubo un error ajustando el prompt.");
+      alert("❌ " + (err.message || "Hubo un error ajustando el prompt. Revisa logs."));
     } finally {
       setIsEnhancing(false);
     }
