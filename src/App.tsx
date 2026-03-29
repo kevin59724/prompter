@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Wand2, Copy, Check, Code, Image as ImageIcon, PenLine, RefreshCcw, Scissors, Languages } from 'lucide-react';
+import { Sparkles, Wand2, Copy, Check, Code, Image as ImageIcon, PenLine, RefreshCcw, Scissors, Languages, History } from 'lucide-react';
 import './App.css';
 
 function App() {
@@ -8,6 +8,23 @@ function App() {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('image');
+
+  const [history, setHistory] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('prompter_history');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
+
+  const saveToHistory = (original: string, enhanced: string, category: string) => {
+    setHistory(prev => {
+      const filtered = prev.filter(h => h.original !== original);
+      const newHistory = [{ original, enhanced, category, timestamp: Date.now() }, ...filtered].slice(0, 5);
+      localStorage.setItem('prompter_history', JSON.stringify(newHistory));
+      return newHistory;
+    });
+  };
 
   // Categories/Tags for the UI
   const categories = [
@@ -34,6 +51,7 @@ function App() {
 
       if (response.ok && data.result) {
         setOutputPrompt(data.result);
+        saveToHistory(inputPrompt, data.result, selectedCategory);
       } else {
         throw new Error(data.error || 'Fallo desconocido en el servidor');
       }
@@ -172,12 +190,21 @@ function App() {
           </div>
 
           <div className="textarea-wrapper" style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', borderColor: outputPrompt ? 'var(--color-primary)' : 'var(--color-accent)' }}>
-            <textarea 
-              readOnly
-              placeholder="Aquí aparecerá tu prompt ultra detallado listo para ser usado..."
-              value={outputPrompt}
-              style={{ color: outputPrompt ? 'var(--color-text)' : 'var(--color-text-muted)' }}
-            />
+            {isEnhancing ? (
+              <div className="skeleton-container">
+                <div className="skeleton-pulse"></div>
+                <div className="skeleton-pulse delay-1"></div>
+                <div className="skeleton-pulse delay-2"></div>
+                <div className="skeleton-pulse delay-3"></div>
+              </div>
+            ) : (
+              <textarea 
+                readOnly
+                placeholder="Aquí aparecerá tu prompt ultra detallado listo para ser usado..."
+                value={outputPrompt}
+                style={{ color: outputPrompt ? 'var(--color-text)' : 'var(--color-text-muted)' }}
+              />
+            )}
           </div>
           
           {outputPrompt && (
@@ -195,6 +222,33 @@ function App() {
           )}
         </section>
       </main>
+
+      {history.length > 0 && (
+        <section className="history-section fade-in">
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--color-text)' }}>
+            <History size={18} /> Tu Historial de Prompts
+          </h3>
+          <div className="history-grid">
+            {history.map((item: any, idx: number) => (
+              <div 
+                key={idx} 
+                className="history-card" 
+                onClick={() => {
+                  setInputPrompt(item.original);
+                  setOutputPrompt(item.enhanced);
+                  setSelectedCategory(item.category);
+                }}
+              >
+                <div className="history-cat">
+                  {categories.find(c => c.id === item.category)?.icon}
+                  {categories.find(c => c.id === item.category)?.label}
+                </div>
+                <p>"{item.original.substring(0, 70)}{item.original.length > 70 ? '...' : ''}"</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
         </div>
 
         {/* ESPACIO PUBLICITARIO LATERAL DERECHO (ej. AdSense 160x600) */}
